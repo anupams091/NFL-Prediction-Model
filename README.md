@@ -2,6 +2,8 @@
 
 A side project where I try to predict the winner of every NFL game in the 2026 season. It pulls data from nflverse, builds features for each game, trains a logistic regression model, and shows everything in a Streamlit dashboard. I rerun it every Tuesday after the week's games are done, and each week's picks get saved before kickoff so the record stays honest.
 
+Link: https://nfl-prediction-model-takvgcmznkyfnhwemnifme.streamlit.app/
+
 ![Weekly picks](images/weekly_picks.png)
 
 ## How it did
