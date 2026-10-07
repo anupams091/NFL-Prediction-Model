@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -12,28 +10,16 @@ GRID = "rgba(137,135,129,0.25)"
 
 
 @st.cache_data
-def load(data_stamp):
+def load():
     games = pd.read_csv("nfl_app/games_2026.csv", parse_dates=["gameday"])
     teams = pd.read_csv("nfl_app/teams.csv")
     elo_hist = pd.read_csv("nfl_app/elo_history.csv", parse_dates=["gameday"])
     report = pd.read_csv("nfl_app/report.csv")
     exam = pd.read_csv("nfl_app/exam_2024_2025.csv")
-    pick_log = pd.read_csv("nfl_app/pick_log.csv") if os.path.exists("nfl_app/pick_log.csv") else None
-    return games, teams, elo_hist, report, exam, pick_log
+    return games, teams, elo_hist, report, exam
 
 
-games, teams, elo_hist, report, exam, pick_log = load(max(os.path.getmtime(f"nfl_app/{f}") for f in os.listdir("nfl_app") if f.endswith(".csv")))
-
-# Show the pick that was saved before kickoff whenever one exists
-games["locked"] = False
-if pick_log is not None:
-    locked = pick_log.drop_duplicates("game_id", keep="last").set_index("game_id")
-    is_locked = games["game_id"].isin(locked.index)
-    for col in ["home_win_prob", "pick", "confidence"]:
-        games.loc[is_locked, col] = games.loc[is_locked, "game_id"].map(locked[col])
-    games["locked"] = is_locked
-    is_final = games["status"] == "Final"
-    games.loc[is_final, "correct"] = (games.loc[is_final, "pick"] == games.loc[is_final, "winner"]).astype(float)
+games, teams, elo_hist, report, exam = load()
 final = games[games["status"] == "Final"]
 upcoming = games[games["status"] == "Upcoming"]
 last_week = int(final["week"].max()) if len(final) else 0
@@ -90,8 +76,7 @@ with tab_week:
 
     if (wk["status"] == "Final").any():
         done = wk[wk["status"] == "Final"]
-        note = " (picks locked before kickoff)" if done["locked"].all() else ""
-        st.markdown(f"**Week {week}: {int(done['correct'].sum())} of {len(done)} correct**{note}")
+        st.markdown(f"**Week {week}: {int(done['correct'].sum())} of {len(done)} correct**")
     else:
         st.markdown(f"**Week {week}: {len(wk)} games.** Picks further out are pulled toward 50% "
                     "because a lot can change before then.")
@@ -236,9 +221,5 @@ with tab_report:
     st.markdown("**2026 week by week**")
     weekly = final.assign(vegas_right=(final["vegas_prob"] >= 0.5) == (final["home_score"] > final["away_score"]))
     weekly = weekly.groupby("week").agg(Games=("correct", "size"), Model=("correct", "sum"),
-                                        Vegas=("vegas_right", "sum"), locked=("locked", "all")).reset_index()
-    weekly["Picks"] = weekly["locked"].map({True: "Locked before kickoff", False: "Rebuilt from earlier data"})
-    weekly = weekly.rename(columns={"week": "Week"})[["Week", "Games", "Model", "Vegas", "Picks"]]
-    st.dataframe(weekly.astype({"Week": int, "Games": int, "Model": int, "Vegas": int}), hide_index=True, width="stretch")
-    st.caption("Weeks 1 to 3 happened before I started saving picks, so they are rebuilt using only data from before each week. "
-               "From Week 4 on, the record uses the picks saved before kickoff.")
+                                        Vegas=("vegas_right", "sum")).reset_index().rename(columns={"week": "Week"})
+    st.dataframe(weekly.astype(int), hide_index=True, width="stretch")
