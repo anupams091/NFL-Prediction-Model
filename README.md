@@ -42,7 +42,7 @@ The model got off to a slow start in the first three weeks of 2026. I wanted to 
 
 ## Files
 
-- `notebook/` the Colab notebook with every step
+- `NFLGame_predictor.ipynb` the Colab notebook with every step
 - `nfl_app/app.py` the dashboard
 - `nfl_app/*.csv` the data the dashboard reads, updated weekly
 - `images/` screenshots
